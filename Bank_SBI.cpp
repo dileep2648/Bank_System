@@ -52,8 +52,10 @@ protected:
 public:
   virtual void Deposit(int amount) = 0;
   virtual void Withdraw(int amount) = 0;
+  virtual void showBalance() = 0;
   virtual void display() = 0;
-  virtual ~Account() {}
+  virtual string getType() = 0;
+  virtual void applyInterest() {};
 };
 
 class SavingsAccount : public Account
@@ -65,22 +67,57 @@ public:
     id = rand() % 1000;
   }
 
+  string getType()
+  {
+
+    return "savings";
+  }
+
+  void showBalance()
+  {
+    cout << "your current balance is " << balance << endl;
+  }
+
+  void applyInterest()
+  {
+    balance += (balance * 3) / 100;
+  }
+
   void Deposit(int amount)
   {
     balance += amount;
-    cout << "Deposit successful! Current balance: " << balance << endl;
+    cout << "Deposit successful! Current balance: \n"
+         << balance << endl;
   };
 
   void Withdraw(int amount)
-  {
+  {  int tranactionCharges=2;
     if (amount > balance)
     {
       cout << "Insufficient balance!" << endl;
     }
+    else if ((balance - amount) < 5000)
+    {
+      cout << "Balance goes below minimum! You will be charged Rs 200 penalty and Rs 2 transaction charges\n";
+      cout << "Enter 1 to continue or 2 to cancel: ";
+      int confirm;
+      cin >> confirm;
+      if (confirm == 1)
+      {
+        balance -= (amount + 200+tranactionCharges);
+        cout<<"transaction charges of rs 2 applied\n";
+        cout << "Withdrawal successful! Current balance: " << balance << endl;
+      }
+      else
+      {
+        cout << "Withdrawal cancelled\n";
+      }
+    }
+
     else
     {
-      balance -= amount;
-      cout << "Withdrawal successful! Current balance: " << balance << endl;
+      balance -= (amount + tranactionCharges);
+      cout << "withdrawl succesfull";
     }
   }
 
@@ -100,25 +137,59 @@ public:
     id = rand() % 1000;
   }
 
+  string getType()
+  {
+    return "current";
+  }
+
+  void showBalance()
+  {
+    cout << "your current balance is " << balance << endl;
+  }
+
   void Deposit(int amount)
   {
     balance += amount;
-    cout << "Deposit successful! Current balance: " << balance << endl;
+    cout << "Deposit successful! Current balance: \n"
+         << balance << endl;
   };
 
   void Withdraw(int amount)
   {
-    if (amount > balance)
+    int choice = 0;
+    int tranactionCharges=2;
+    if ((balance - amount) < 5000)
     {
-      cout << "Insufficient balance!" << endl;
+      cout << "your balance goes less than the mimimum balnce\n";
+      cout << "u will be charged rs200 penalty \n";
+      cout << "enter 1 if u want to continu and 2 to stop the withdrawl\n";
+      cin >> choice;
+
+      if (choice == 1)
+      {
+        if (amount > (balance + 5000))
+        {
+          cout << "Insufficient balance!" << endl;
+        }
+        else
+        {
+          balance -= (amount + 202);
+          cout<<"transaction charges of rs 2 applied\n";
+          cout << "Withdrawal successful! Current balance: " << balance << endl;
+        }
+      }
+
+      else
+      {
+        cout << "no withdrawl made\n";
+      }
     }
+
     else
     {
-      balance -= amount;
-      cout << "Withdrawal successful! Current balance: " << balance << endl;
+      balance -= (amount + 2);
     }
   }
-
   void display()
   {
     cout << "Account ID: " << id << endl;
@@ -152,6 +223,11 @@ public:
   void setPhone(string phone)
   {
     this->phone = phone;
+  }
+
+  vector<Account *> &getAccounts()
+  { // & means return by reference, no copy
+    return accounts;
   }
 
   void display()
@@ -207,6 +283,7 @@ public:
       cout << "Account " << i + 1 << ": " << endl;
       accounts[i]->display();
     }
+
     cin >> choice;
 
     if (choice < 1 || choice > accounts.size())
@@ -225,14 +302,6 @@ public:
       cout << "Account " << i + 1 << ": " << endl;
       i++;
       acc->display();
-    }
-  }
-
-  ~User()
-  {
-    for (Account *acc : accounts)
-    {
-      delete acc;
     }
   }
 };
@@ -304,6 +373,21 @@ public:
   {
     acc.Withdraw(amount);
   }
+
+  void Transfer(int amount, Account &acc1, Account &acc2)
+  {
+    if (amount < 0)
+    {
+      cout << "invalid amount\n";
+    }
+    else
+    {
+      acc1.Withdraw(amount);
+      acc2.Deposit(amount);
+      acc1.showBalance();
+      acc2.showBalance();
+    }
+  }
 };
 
 class Authentication
@@ -316,31 +400,37 @@ public:
   {
     string name;
     string Password;
-    int id;
     string hashedPassword;
     string phone;
+    int id;
+
     cout << "Enter your name: ";
     cin >> name;
     cout << "Enter your password: ";
     cin >> Password;
     id = rand() % 1000;
+
     string salt = security.generateSalt();
     hashedPassword = security.hashPassword(Password, salt);
     User user(name, hashedPassword, id, salt);
+
     cout << "Enter your phone number: ";
     cin >> phone;
     user.setPhone(phone);
+
     cout << "Signup successful! Your ID is " << id << endl;
     return user;
   }
   User *login(vector<User> &users)
   {
-    string Password;
     int id;
+    string Password;
+
     cout << "Enter your ID: ";
     cin >> id;
     cout << "Enter your password: ";
     cin >> Password;
+
     for (User &user : users)
     {
       if (user.getId() == id && security.verifyPassword(Password, user.gethashedPassword(), user.getSalt()))
@@ -355,6 +445,7 @@ public:
         cout << "Incorrect password!" << endl;
         return nullptr;
       }
+
     }
 
     cout << "User not found!" << endl;
@@ -374,7 +465,7 @@ public:
   void Register()
   {
     User user = Auth.Register();
-    users.push_back(user);
+    users.push_back(std::move(user));
   }
 
   void login()
@@ -389,13 +480,16 @@ public:
   void userMenu(User &user)
   {
     int choice = 0;
-    while (choice != 5)
+    while (choice != 8)
     {
       cout << "1. Create Account" << endl;
       cout << "2. Close Account" << endl;
       cout << "3. Deposit" << endl;
       cout << "4. Withdraw" << endl;
-      cout << "5. Logout" << endl;
+      cout << "5. Simulate one year" << endl;
+      cout << "6. Show balance" << endl;
+      cout << "7. Transfer money" << endl;
+      cout << "8. Logout" << endl;
       cin >> choice;
       switch (choice)
       {
@@ -431,8 +525,8 @@ public:
         Account *acc2 = user.chooseAccount();
         if (acc2 == nullptr)
         {
-          cout << "No accounts available for withdrawal!" << endl;
-          break;
+          cout << "Account not found!" << endl;
+          
         }
 
         cout << "Enter the amount to withdraw: ";
@@ -442,6 +536,73 @@ public:
         break;
       }
       case 5:
+      {
+        for (Account *acc : user.getAccounts())
+        {
+          if (acc->getType() == "savings")
+          {
+            acc->applyInterest();
+          }
+        }
+        break;
+      }
+
+      case 6:
+      {
+        Account *acc2 = user.chooseAccount();
+        if (acc2 == nullptr)
+        {
+          cout << "Account not found!" << endl;
+          break;
+        }
+        else
+        {
+          acc2->showBalance();
+        }
+
+        break;
+      }
+
+      case 7:
+      {
+        int amount;
+        int choice;
+        Account *acc1 = user.chooseAccount();
+        if (acc1 == nullptr)
+        {
+          cout << "Account not found!" << endl;
+          break;
+        }
+        cout << "enter amount\n";
+        cin >> amount;
+        cout << "chose the reciver by id\n";
+        for (User &user : users)
+        {
+          user.display();
+          cout << "------------------" << endl;
+        }
+        cin >> choice;
+        Account *acc2=NULL;
+
+        for (User &u : users)
+        {
+          if (u.getId() == choice)
+          {
+            acc2 = u.chooseAccount();
+            if (acc2 != NULL)
+            {
+              transaction.Transfer(amount, *acc1, *acc2);
+            }
+            else
+            {
+              cout << "account not found\n";
+            }
+          }
+        }
+
+        break;
+      }
+      case 8:
       {
         cout << "Logout successful!" << endl;
         break;
@@ -478,5 +639,7 @@ int main()
     default:
       cout << "Invalid choice!" << endl;
     }
-  }
+  };
+
+  return 0;
 }
