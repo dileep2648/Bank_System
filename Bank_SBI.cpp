@@ -4,6 +4,7 @@
 #include <time.h>
 #include <vector>
 #include <sstream>
+#include <fstream>
 using namespace std;
 
 class Security
@@ -50,11 +51,18 @@ protected:
   int id;
 
 public:
-  virtual void Deposit(int amount) = 0;
-  virtual void Withdraw(int amount) = 0;
+  virtual bool Deposit(int amount) = 0;
+  virtual bool Withdraw(int amount) = 0;
+  virtual int getBalance() = 0;
+  virtual void setBalance(int balance)=0;
   virtual void showBalance() = 0;
   virtual void display() = 0;
   virtual string getType() = 0;
+  virtual int getId() = 0;
+  virtual void setId(int id)
+  {
+    this->id = id;
+  }
   virtual void applyInterest() {};
 };
 
@@ -67,10 +75,25 @@ public:
     id = rand() % 1000;
   }
 
+  int getId()
+  {
+    return id;
+  }
+
   string getType()
   {
 
     return "savings";
+  }
+
+  int getBalance()
+  {
+    return balance;
+  }
+
+  void setBalance(int balance)
+  {
+    this->balance = balance;
   }
 
   void showBalance()
@@ -83,41 +106,46 @@ public:
     balance += (balance * 3) / 100;
   }
 
-  void Deposit(int amount)
+  bool Deposit(int amount)
   {
     balance += amount;
     cout << "Deposit successful! Current balance: \n"
          << balance << endl;
+    return true;
   };
 
-  void Withdraw(int amount)
-  {  int tranactionCharges=2;
+  bool Withdraw(int amount)
+  {
+   
     if (amount > balance)
     {
       cout << "Insufficient balance!" << endl;
+      return false;
     }
     else if ((balance - amount) < 5000)
     {
-      cout << "Balance goes below minimum! You will be charged Rs 200 penalty and Rs 2 transaction charges\n";
+      cout << "Balance goes below minimum! You will be charged Rs 200 penalty\n";
       cout << "Enter 1 to continue or 2 to cancel: ";
       int confirm;
       cin >> confirm;
       if (confirm == 1)
       {
-        balance -= (amount + 200+tranactionCharges);
-        cout<<"transaction charges of rs 2 applied\n";
+        balance -= (amount + 200 );
         cout << "Withdrawal successful! Current balance: " << balance << endl;
+        return true;
       }
       else
       {
         cout << "Withdrawal cancelled\n";
+        return false;
       }
     }
 
     else
     {
-      balance -= (amount + tranactionCharges);
+      balance -= (amount );
       cout << "withdrawl succesfull";
+      return true;
     }
   }
 
@@ -142,22 +170,38 @@ public:
     return "current";
   }
 
+  int getId()
+  {
+    return id;
+  }
+
+  int getBalance()
+  {
+    cout << "your current balance is " << balance << endl;
+    return balance;
+  }
+
+  void setBalance(int balance)
+  {
+    this->balance = balance;
+  }
+
   void showBalance()
   {
     cout << "your current balance is " << balance << endl;
   }
 
-  void Deposit(int amount)
+  bool Deposit(int amount)
   {
     balance += amount;
     cout << "Deposit successful! Current balance: \n"
          << balance << endl;
+    return true;
   };
 
-  void Withdraw(int amount)
+  bool Withdraw(int amount)
   {
     int choice = 0;
-    int tranactionCharges=2;
     if ((balance - amount) < 5000)
     {
       cout << "your balance goes less than the mimimum balnce\n";
@@ -170,24 +214,27 @@ public:
         if (amount > (balance + 5000))
         {
           cout << "Insufficient balance!" << endl;
+          return false;
         }
         else
         {
-          balance -= (amount + 202);
-          cout<<"transaction charges of rs 2 applied\n";
+          balance -= (amount + 200 );
           cout << "Withdrawal successful! Current balance: " << balance << endl;
+          return true;
         }
       }
 
       else
       {
         cout << "no withdrawl made\n";
+        return false;
       }
     }
 
     else
     {
-      balance -= (amount + 2);
+      balance -= (amount);
+      return true;
     }
   }
   void display()
@@ -321,12 +368,23 @@ public:
       SavingsAccount *acc = new SavingsAccount();
       user.addAccount(acc);
       cout << "Savings Account created successfully!" << endl;
+      ofstream file("accounts.txt", ios::app);
+      if (file.is_open())
+      {
+        file << user.getId() << " " << acc->getType() << " " << acc->getId() << " " << 0 << endl;
+        file.close();
+      }
     }
     else if (choice == 2)
     {
       cout << "Current Account created successfully!" << endl;
       CurrentAccount *acc = new CurrentAccount();
       user.addAccount(acc);
+      ofstream file("accounts.txt", ios::app);
+      if (file.is_open())      {
+        file << user.getId() << " " << acc->getType() << " " << acc->getId() << " " << 0 << endl;
+        file.close();
+      }
     }
     else
     {
@@ -334,7 +392,7 @@ public:
     }
   }
 
-  void closeAccount(User &user)
+  bool closeAccount(User &user)
   {
 
     Account *acc = user.chooseAccount();
@@ -343,10 +401,12 @@ public:
       user.removeAccount(acc);
       delete acc;
       cout << "Account closed successfully!" << endl;
+      return true;
     }
     else
     {
       cout << "No accounts to close!" << endl;
+      return false;
     }
   }
 };
@@ -354,38 +414,73 @@ public:
 class Transaction
 {
 public:
-  void deposit(int amount, Account &acc)
-  {
+  bool deposit(int amount, Account &acc)
+  { ofstream file("transactions.txt", ios::app);
 
     if (amount <= 0)
     {
       cout << "Invalid amount!" << endl;
-      return;
+      return false;
     }
 
     else
     {
-      acc.Deposit(amount);
+      if(acc.Deposit(amount))
+      {
+        if (file.is_open())
+        {
+          file << "Deposit of Rs " << amount << " to account ID " << acc.getId() << endl;
+          file.close();
+        } 
+      }
+      return true;
     }
   }
 
-  void withdraw(int amount, Account &acc)
-  {
-    acc.Withdraw(amount);
+  bool withdraw(int amount, Account &acc)
+  { ofstream file("transactions.txt", ios::app);
+
+    if (amount <= 0)
+    {
+      cout << "Invalid amount!" << endl;
+      return false;
+    }
+    if(acc.Withdraw(amount))
+    {
+      if (file.is_open())
+      {
+        file << "Withdrawal of Rs " << amount << " from account ID " << acc.getId() << endl;
+        file.close();
+      } 
+    }
+    return true;
   }
 
-  void Transfer(int amount, Account &acc1, Account &acc2)
-  {
+  bool Transfer(int amount, Account &acc1, Account &acc2)
+  {  ofstream file("transactions.txt", ios::app);
     if (amount < 0)
     {
       cout << "invalid amount\n";
+      return false;
     }
     else
     {
-      acc1.Withdraw(amount);
-      acc2.Deposit(amount);
-      acc1.showBalance();
-      acc2.showBalance();
+      if (acc1.Withdraw(amount) && acc2.Deposit(amount))
+      {  if (file.is_open())
+        {
+          file << "Transfer of Rs " << amount << " from account ID " << acc1.getId() << " to account ID " << acc2.getId() << endl;
+          file.close();
+        }
+        cout << "transfer successful\n";
+        return true;
+      }
+      else
+      {
+        cout << "transfer failed\n";
+        return false;
+      }
+
+      return true;
     }
   }
 };
@@ -418,6 +513,13 @@ public:
     cin >> phone;
     user.setPhone(phone);
 
+    ofstream file("users.txt", ios::app);
+    if (file.is_open())
+    {
+      file << id << " " << name << " " << phone << " " << hashedPassword << " " << salt << endl;
+      file.close();
+    }
+
     cout << "Signup successful! Your ID is " << id << endl;
     return user;
   }
@@ -445,7 +547,6 @@ public:
         cout << "Incorrect password!" << endl;
         return nullptr;
       }
-
     }
 
     cout << "User not found!" << endl;
@@ -462,6 +563,79 @@ private:
   vector<User> users;
 
 public:
+  Bank()
+  {
+    loadUsers();
+    loadAccounts();
+  }
+
+  void loadUsers()
+  {
+    ifstream file("users.txt");
+    string name, phone, hashedPassword, salt;
+    int id;
+
+    while (file >> id >> name >> phone >> hashedPassword >> salt)
+    {
+      User user(name, hashedPassword, id, salt);
+      user.setPhone(phone);
+      users.push_back(user);
+    }
+    file.close();
+  }
+
+  void loadAccounts()
+  { 
+
+    ifstream file2("accounts.txt");
+    int userId, accId;
+    string type;
+    int balance;
+    while (file2 >> userId >> type >> accId >> balance)
+    {
+        for(User &u : users)
+        {
+          if (u.getId() == userId)
+          {
+            Account *acc;
+            if (type == "savings")
+            {
+              acc = new SavingsAccount();
+              acc->setBalance(balance);
+              acc->setId(accId);
+            }
+            else
+            {
+              acc = new CurrentAccount();
+              acc->setBalance(balance);
+              acc->setId(accId);
+            }
+            u.addAccount(acc);
+          }
+        } 
+     
+    }
+
+    file2.close();
+  }
+
+  void SaveToFile()
+  {
+    ofstream file("accounts.txt");
+    for (User &user : users)
+    {
+      if (file.is_open())
+      {
+        for (Account *acc : user.getAccounts())
+        {
+          file << user.getId() << " " << acc->getType() << " " << acc->getId() << " " << acc->getBalance() << endl;
+        }
+      }
+    }
+    file.close();
+  }
+
+
   void Register()
   {
     User user = Auth.Register();
@@ -500,7 +674,10 @@ public:
       }
       case 2:
       {
-        accManager.closeAccount(user);
+        if (accManager.closeAccount(user))
+        {
+          SaveToFile();
+        }
         break;
       }
       case 3:
@@ -514,7 +691,10 @@ public:
         }
         cout << "Enter the amount to deposit: ";
         cin >> amount;
-        transaction.deposit(amount, *acc);
+        if (transaction.deposit(amount, *acc))
+        {
+          SaveToFile();
+        }
         break;
       }
 
@@ -526,12 +706,15 @@ public:
         if (acc2 == nullptr)
         {
           cout << "Account not found!" << endl;
-          
+          break;
         }
 
         cout << "Enter the amount to withdraw: ";
         cin >> amount2;
-        transaction.withdraw(amount2, *acc2);
+        if (transaction.withdraw(amount2, *acc2))
+        {
+          SaveToFile();
+        }
 
         break;
       }
@@ -542,6 +725,7 @@ public:
           if (acc->getType() == "savings")
           {
             acc->applyInterest();
+            SaveToFile();
           }
         }
         break;
@@ -567,22 +751,26 @@ public:
       {
         int amount;
         int choice;
+        int thisID = user.getId();
         Account *acc1 = user.chooseAccount();
+
         if (acc1 == nullptr)
         {
           cout << "Account not found!" << endl;
           break;
         }
+
         cout << "enter amount\n";
         cin >> amount;
         cout << "chose the reciver by id\n";
+
         for (User &user : users)
-        {
+        { if(user.getId() != thisID){
           user.display();
-          cout << "------------------" << endl;
+          cout << "------------------" << endl;}
         }
         cin >> choice;
-        Account *acc2=NULL;
+        Account *acc2 = NULL;
 
         for (User &u : users)
         {
@@ -591,7 +779,10 @@ public:
             acc2 = u.chooseAccount();
             if (acc2 != NULL)
             {
-              transaction.Transfer(amount, *acc1, *acc2);
+              if (transaction.Transfer(amount, *acc1, *acc2))
+              {
+                SaveToFile();
+              }
             }
             else
             {
