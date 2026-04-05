@@ -5,7 +5,6 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
-#include <time.h>
 using namespace std;
 
 string getTime()
@@ -439,7 +438,7 @@ public:
       {
         if (file.is_open())
         {
-          file << "Deposit of Rs " << amount << " to account ID " << acc.getId() << " at " << getTime().c_str() << endl;
+          file << "Deposit of Rs " << amount << " to account ID " << acc.getId() << " at " << getTime().c_str();
           file.close();
         }
       }
@@ -460,11 +459,12 @@ public:
     {
       if (file.is_open())
       {
-        file << "Withdrawal of Rs " << amount << " from account ID " << acc.getId() << " at " << getTime().c_str() <<endl;
+        file << "Withdrawal of Rs " << amount << " from account ID " << acc.getId() << " at " << getTime().c_str();
         file.close();
       }
+      return true;
     }
-    return true;
+    
   }
 
   bool Transfer(int amount, Account &acc1, Account &acc2)
@@ -481,7 +481,7 @@ public:
       {
         if (file.is_open())
         {
-          file << "Transfer of Rs " << amount << " from account ID " << acc1.getId() << " to account ID " << acc2.getId() << " at " << getTime().c_str()<< endl;
+          file << "Transfer of Rs " << amount << " from account ID " << acc1.getId() << " to account ID " << acc2.getId() << " at " << getTime().c_str();
           file.close();
         }
         cout << "transfer successful\n";
