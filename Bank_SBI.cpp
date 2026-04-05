@@ -624,6 +624,7 @@ public:
             acc->setId(accId);
           }
           u.addAccount(acc);
+          break;
         }
       }
     }
