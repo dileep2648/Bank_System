@@ -9,9 +9,9 @@ using namespace std;
 
 string getTime()
 {
-   time_t t = time(NULL);
-    struct tm *tm = localtime(&t);
-   return asctime(tm);
+  time_t t = time(NULL);
+  struct tm *tm = localtime(&t);
+  return asctime(tm);
 }
 
 class Security
@@ -116,8 +116,7 @@ public:
   bool Deposit(int amount)
   {
     balance += amount;
-    cout << "Deposit successful! Current balance: \n"
-         << balance << endl;
+    cout << "Deposit successful! Current balance: " << balance << endl;
     return true;
   };
 
@@ -184,7 +183,6 @@ public:
 
   int getBalance()
   {
-    cout << "your current balance is " << balance << endl;
     return balance;
   }
 
@@ -201,8 +199,7 @@ public:
   bool Deposit(int amount)
   {
     balance += amount;
-    cout << "Deposit successful! Current balance: \n"
-         << balance << endl;
+    cout << "Deposit successful! Current balance: " << balance << endl;
     return true;
   };
 
@@ -211,9 +208,9 @@ public:
     int choice = 0;
     if ((balance - amount) < 5000)
     {
-      cout << "your balance goes less than the mimimum balnce\n";
+      cout << "your balance goes less than the minimum balance\n";
       cout << "u will be charged rs200 penalty \n";
-      cout << "enter 1 if u want to continu and 2 to stop the withdrawl\n";
+      cout << "enter 1 if u want to continue and 2 to stop the withdrawal\n";
       cin >> choice;
 
       if (choice == 1)
@@ -233,7 +230,7 @@ public:
 
       else
       {
-        cout << "no withdrawl made\n";
+        cout << "no withdrawal made\n";
         return false;
       }
     }
@@ -274,9 +271,24 @@ public:
     this->salt = salt;
   }
 
+  void deleteAccounts()
+  {
+    for (auto acc = accounts.begin(); acc != accounts.end(); acc++)
+    {
+      delete *acc;
+    }
+    accounts.clear();
+    accounts.shrink_to_fit();
+  }
+
   void setPhone(string phone)
   {
     this->phone = phone;
+  }
+
+  string getPhone()
+  {
+    return phone;
   }
 
   vector<Account *> &getAccounts()
@@ -357,6 +369,86 @@ public:
       i++;
       acc->display();
     }
+  }
+};
+
+class Admin
+{
+public:
+  void displayAllUsers(vector<User> &users)
+  {
+    for (User &user : users)
+    {
+      user.display();
+      cout << "------------------" << endl;
+    }
+  }
+
+  void displayAllAccounts(vector<User> &users)
+  {
+    for (User &user : users)
+    {
+      cout << "User ID: " << user.getId() << endl;
+      user.displayAccounts();
+      cout << "------------------" << endl;
+    }
+  }
+
+  void displayAllTransactions()
+  {
+    ifstream file("transactions.txt");
+    string line;
+    while (getline(file, line))
+    {
+      cout << line << endl;
+    }
+    file.close();
+  }
+  void deleteUser(vector<User> &users, int id)
+  {
+    for (auto it = users.begin(); it != users.end(); ++it)
+    {
+      if (it->getId() == id)
+      {
+        it->display();
+        it->deleteAccounts();
+        users.erase(it);
+        return;
+      }
+    }
+    return;
+  }
+  void findUserById(vector<User> &users, int id)
+  {
+    for (User &user : users)
+    {
+      if (user.getId() == id)
+      {
+        user.display();
+        return;
+      }
+    }
+    return;
+  }
+
+  void findAccById(int id)
+  {
+    ifstream file("accounts.txt");
+    int userId, accId;
+    string type;
+    int balance;
+    while (file >> userId >> type >> accId >> balance)
+    {
+      if (accId == id)
+      {
+        cout << "Account found: " << endl;
+        cout << "User ID: " << userId << endl;
+        cout << "Account Type: " << type << endl;
+        cout << "Balance: " << balance << endl;
+        break;
+      }
+    }
+    file.close();
   }
 };
 
@@ -464,13 +556,17 @@ public:
       }
       return true;
     }
+    else
+    {
+      return false;
+    }
     
   }
 
   bool Transfer(int amount, Account &acc1, Account &acc2)
   {
     ofstream file("transactions.txt", ios::app);
-    if (amount < 0)
+    if (amount <= 0)
     {
       cout << "invalid amount\n";
       return false;
@@ -493,7 +589,7 @@ public:
         return false;
       }
 
-      return true;
+      
     }
   }
 };
@@ -550,6 +646,7 @@ public:
     {
       if (user.getId() == id && security.verifyPassword(Password, user.gethashedPassword(), user.getSalt()))
       {
+
         cout << "Login successful! Welcome " << endl;
         user.display();
         return &user;
@@ -632,7 +729,7 @@ public:
     file2.close();
   }
 
-  void SaveToFile()
+  void updateAccountsFile()
   {
     ofstream file("accounts.txt");
     for (User &user : users)
@@ -648,6 +745,16 @@ public:
     file.close();
   }
 
+  void updateUsersFile(){
+      ofstream file("users.txt");
+      for (User &user : users)    {
+        if (file.is_open())
+        {
+          file << user.getId() << " " << user.getSalt() << " " << user.gethashedPassword() << " " << user.getPhone() << endl;
+        }
+      }
+  }
+
   void Register()
   {
     User user = Auth.Register();
@@ -657,7 +764,13 @@ public:
   void login()
   {
     User *user = Auth.login(users);
-    if (user != nullptr)
+
+    if (user != nullptr && user->getId() > 1000)
+    {
+      Admin admin;
+      adminMenu(admin);
+    }
+    else if (user != nullptr)
     {
       userMenu(*user);
     }
@@ -688,7 +801,7 @@ public:
       {
         if (accManager.closeAccount(user))
         {
-          SaveToFile();
+          updateAccountsFile();
         }
         break;
       }
@@ -705,7 +818,7 @@ public:
         cin >> amount;
         if (transaction.deposit(amount, *acc))
         {
-          SaveToFile();
+          updateAccountsFile();
         }
         break;
       }
@@ -725,7 +838,7 @@ public:
         cin >> amount2;
         if (transaction.withdraw(amount2, *acc2))
         {
-          SaveToFile();
+          updateAccountsFile();
         }
 
         break;
@@ -737,7 +850,7 @@ public:
           if (acc->getType() == "savings")
           {
             acc->applyInterest();
-            SaveToFile();
+            updateAccountsFile();
           }
         }
         break;
@@ -774,7 +887,7 @@ public:
 
         cout << "enter amount\n";
         cin >> amount;
-        cout << "chose the reciver by id\n";
+        cout << "choose the receiver by id\n";
 
         for (User &user : users)
         {
@@ -796,7 +909,7 @@ public:
             {
               if (transaction.Transfer(amount, *acc1, *acc2))
               {
-                SaveToFile();
+                updateAccountsFile();
               }
             }
             else
@@ -818,6 +931,59 @@ public:
       }
     }
   }
+
+  void adminMenu(Admin &admin)
+  {
+    int choice = 0;
+    while (choice != 7)
+    {
+      cout << "1. Display all users" << endl;
+      cout << "2. Display all accounts" << endl;
+      cout << "3. Display all transactions" << endl;
+      cout << "4. Delete a user" << endl;
+      cout << "5. Find user by ID" << endl;
+      cout << "6. Find account by ID" << endl;
+      cout << "7. Logout" << endl;
+      cin >> choice;
+      switch (choice)
+      {
+      case 1:
+        admin.displayAllUsers(users);
+        break;
+      case 2:
+        admin.displayAllAccounts(users);
+        break;
+      case 3:
+        admin.displayAllTransactions();
+        break;
+      case 4:
+        int id;
+        cout << "Enter user ID to delete: ";
+        cin >> id;
+        admin.deleteUser(users, id);
+        updateAccountsFile();
+        updateUsersFile();
+        break;
+      case 5:
+        int userId;
+        cout << "Enter user ID to find: ";
+        cin >> userId;
+        admin.findUserById(users, userId);
+        break;
+      case 6:
+        int accId;
+        cout << "Enter account ID to find: ";
+        cin >> accId;
+        admin.findAccById(accId);
+        break;
+      case 7:
+        cout << "Logout successful!" << endl;
+        break;
+      default:
+        cout << "Invalid choice!" << endl;
+      }
+    }
+  }
 };
 
 int main()
@@ -826,8 +992,7 @@ int main()
   Bank sbi;
   int choice;
 
-  printf(" %s", getTime().c_str()); 
- 
+  printf(" %s", getTime().c_str());
 
   while (true)
   {
