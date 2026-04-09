@@ -291,6 +291,11 @@ public:
     return phone;
   }
 
+  string getName()
+  {
+    return name;
+  }
+
   vector<Account *> &getAccounts()
   { // & means return by reference, no copy
     return accounts;
@@ -398,13 +403,17 @@ public:
   {
     ifstream file("transactions.txt");
     string line;
-    while (getline(file, line))
+    if (file.is_open())
     {
-      cout << line << endl;
+      while (getline(file, line))
+      {
+        cout << line << endl;
+      }
+      file.close();
     }
-    file.close();
   }
-  void deleteUser(vector<User> &users, int id)
+
+  bool deleteUser(vector<User> &users, int id)
   {
     for (auto it = users.begin(); it != users.end(); ++it)
     {
@@ -413,10 +422,13 @@ public:
         it->display();
         it->deleteAccounts();
         users.erase(it);
-        return;
+        return true;
       }
+   
     }
-    return;
+
+    cout << "User not found!" << endl;
+    return false;
   }
   void findUserById(vector<User> &users, int id)
   {
@@ -428,6 +440,8 @@ public:
         return;
       }
     }
+
+      cout << "User not found!" << endl;
     return;
   }
 
@@ -437,6 +451,8 @@ public:
     int userId, accId;
     string type;
     int balance;
+    if(file.is_open())
+    {
     while (file >> userId >> type >> accId >> balance)
     {
       if (accId == id)
@@ -450,6 +466,7 @@ public:
     }
     file.close();
   }
+}
 };
 
 class AccManager
@@ -666,13 +683,13 @@ public:
 
 class Bank
 {
-private:
+ private:
   Authentication Auth;
   AccManager accManager;
   Transaction transaction;
   vector<User> users;
 
-public:
+ public:
   Bank()
   {
     loadUsers();
@@ -750,9 +767,10 @@ public:
       for (User &user : users)    {
         if (file.is_open())
         {
-          file << user.getId() << " " << user.getSalt() << " " << user.gethashedPassword() << " " << user.getPhone() << endl;
+          file << user.getId() << " " << user.getName() << " " <<user.getPhone() << " " << user.gethashedPassword() << " " << user.getSalt() << endl;
         }
       }
+      file.close();
   }
 
   void Register()
@@ -960,9 +978,12 @@ public:
         int id;
         cout << "Enter user ID to delete: ";
         cin >> id;
-        admin.deleteUser(users, id);
-        updateAccountsFile();
-        updateUsersFile();
+        if (admin.deleteUser(users, id))
+        { 
+          updateAccountsFile();
+          updateUsersFile();
+          cout << "User deleted successfully!" << endl;
+        }
         break;
       case 5:
         int userId;
