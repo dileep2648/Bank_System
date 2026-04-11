@@ -7,12 +7,68 @@
 #include <fstream>
 using namespace std;
 
-string getTime()
-{
-  time_t t = time(NULL);
-  struct tm *tm = localtime(&t);
-  return asctime(tm);
-}
+const int MIN_BALANCE=5000;
+const int PENALTY=200;
+
+
+class Utility{
+  private:
+  static vector <int> userIds;
+  static vector <int> accountIds;
+  public:
+
+
+  static string getTime() {
+        time_t t = time(NULL);
+        struct tm *tm = localtime(&t);
+        return asctime(tm);
+    }
+
+  static int  userIdGenerator(){
+    int id;
+    bool isDuplicate;
+    do{
+         isDuplicate=false;
+         id=rand()%1000;
+         for(int existingIds : userIds){
+          if(id==existingIds){
+            isDuplicate=true;
+            break;
+          }
+         } 
+    }while(isDuplicate);
+    userIds.push_back(id);
+    return id;
+  }
+
+  static int accIdGenerator(){
+    int id;
+    bool isDuplicate;
+    do{
+         isDuplicate=false;
+         id=rand()%1000;
+         for(int existingIds : accountIds){
+          if(id==existingIds){
+            isDuplicate=true;
+            break;
+          }
+         }
+    }while(isDuplicate);
+    accountIds.push_back(id);
+    return id;
+  }
+
+  static void loadUserId(int id) {
+        userIds.push_back(id);
+    }
+  static void loadAccountId(int id) {
+        accountIds.push_back(id);
+    }
+};
+
+vector<int> Utility::userIds;
+vector<int> Utility::accountIds;
+
 
 class Security
 {
@@ -79,7 +135,14 @@ public:
   SavingsAccount()
   {
     balance = 0;
-    id = rand() % 1000;
+    id = Utility::accIdGenerator();
+  }
+
+  SavingsAccount(int balance, int id)
+  {
+    this->balance = balance;
+    this->id = id;
+    Utility::loadAccountId(id);
   }
 
   int getId()
@@ -128,7 +191,7 @@ public:
       cout << "Insufficient balance!" << endl;
       return false;
     }
-    else if ((balance - amount) < 5000)
+    else if ((balance - amount) < MIN_BALANCE)
     {
       cout << "Balance goes below minimum! You will be charged Rs 200 penalty\n";
       cout << "Enter 1 to continue or 2 to cancel: ";
@@ -136,7 +199,7 @@ public:
       cin >> confirm;
       if (confirm == 1)
       {
-        balance -= (amount + 200);
+        balance -= (amount + PENALTY);
         cout << "Withdrawal successful! Current balance: " << balance << endl;
         return true;
       }
@@ -168,7 +231,14 @@ public:
   CurrentAccount()
   {
     balance = 0;
-    id = rand() % 1000;
+    id = Utility::accIdGenerator();
+  }
+
+  CurrentAccount(int balance, int id)
+  {
+    this->balance = balance;
+    this->id = id;
+    Utility::loadAccountId(id);
   }
 
   string getType()
@@ -206,7 +276,7 @@ public:
   bool Withdraw(int amount)
   {
     int choice = 0;
-    if ((balance - amount) < 5000)
+    if ((balance - amount) < MIN_BALANCE)
     {
       cout << "your balance goes less than the minimum balance\n";
       cout << "u will be charged rs200 penalty \n";
@@ -215,14 +285,14 @@ public:
 
       if (choice == 1)
       {
-        if (amount > (balance + 5000))
+        if (amount > (balance + MIN_BALANCE))
         {
           cout << "Insufficient balance!" << endl;
           return false;
         }
         else
         {
-          balance -= (amount + 200);
+          balance -= (amount + PENALTY);
           cout << "Withdrawal successful! Current balance: " << balance << endl;
           return true;
         }
@@ -547,7 +617,7 @@ public:
       {
         if (file.is_open())
         {
-          file << "Deposit of Rs " << amount << " to account ID " << acc.getId() << " at " << getTime().c_str();
+          file << "Deposit of Rs " << amount << " to account ID " << acc.getId() << " at " << Utility::getTime().c_str();
           file.close();
         }
       }
@@ -568,7 +638,7 @@ public:
     {
       if (file.is_open())
       {
-        file << "Withdrawal of Rs " << amount << " from account ID " << acc.getId() << " at " << getTime().c_str();
+        file << "Withdrawal of Rs " << amount << " from account ID " << acc.getId() << " at " << Utility::getTime().c_str();
         file.close();
       }
       return true;
@@ -594,7 +664,7 @@ public:
       {
         if (file.is_open())
         {
-          file << "Transfer of Rs " << amount << " from account ID " << acc1.getId() << " to account ID " << acc2.getId() << " at " << getTime().c_str();
+          file << "Transfer of Rs " << amount << " from account ID " << acc1.getId() << " to account ID " << acc2.getId() << " at " << Utility::getTime().c_str();
           file.close();
         }
         cout << "transfer successful\n";
@@ -629,7 +699,7 @@ public:
     cin >> name;
     cout << "Enter your password: ";
     cin >> Password;
-    id = rand() % 1000;
+    id = Utility::userIdGenerator();
 
     string salt = security.generateSalt();
     hashedPassword = security.hashPassword(Password, salt);
@@ -703,7 +773,7 @@ class Bank
     int id;
 
     while (file >> id >> name >> phone >> hashedPassword >> salt)
-    {
+    { Utility::loadUserId(id);
       User user(name, hashedPassword, id, salt);
       user.setPhone(phone);
       users.push_back(user);
@@ -727,17 +797,16 @@ class Bank
           Account *acc;
           if (type == "savings")
           {
-            acc = new SavingsAccount();
-            acc->setBalance(balance);
-            acc->setId(accId);
+            acc = new SavingsAccount(balance, accId);
+            
           }
           else
           {
-            acc = new CurrentAccount();
-            acc->setBalance(balance);
-            acc->setId(accId);
+            acc = new CurrentAccount(balance, accId);
+      
           }
           u.addAccount(acc);
+          Utility::loadAccountId(accId);
           break;
         }
       }
@@ -1013,7 +1082,7 @@ int main()
   Bank sbi;
   int choice;
 
-  printf(" %s", getTime().c_str());
+  printf(" %s", Utility::getTime().c_str());
 
   while (true)
   {
