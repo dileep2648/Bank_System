@@ -138,6 +138,13 @@ public:
     id = Utility::accIdGenerator();
   }
 
+  SavingsAccount(int balance, int id)
+  {
+    this->balance = balance;
+    this->id = id;
+    Utility::loadAccountId(id);
+  }
+
   int getId()
   {
     return id;
@@ -225,6 +232,13 @@ public:
   {
     balance = 0;
     id = Utility::accIdGenerator();
+  }
+
+  CurrentAccount(int balance, int id)
+  {
+    this->balance = balance;
+    this->id = id;
+    Utility::loadAccountId(id);
   }
 
   string getType()
@@ -783,15 +797,13 @@ class Bank
           Account *acc;
           if (type == "savings")
           {
-            acc = new SavingsAccount();
-            acc->setBalance(balance);
-            acc->setId(accId);
+            acc = new SavingsAccount(balance, accId);
+            
           }
           else
           {
-            acc = new CurrentAccount();
-            acc->setBalance(balance);
-            acc->setId(accId);
+            acc = new CurrentAccount(balance, accId);
+      
           }
           u.addAccount(acc);
           Utility::loadAccountId(accId);
